@@ -17,6 +17,15 @@ standalone_pii_patterns = {
 
 combinatorial_pii_fields = ["name", "email", "address", "device_id", "ip_address"]
 
+# ====== Masking Helpers ======
+def mask_pii(value):
+    """Mask value like 98xxx98 instead of full [REDACTED]."""
+    if not isinstance(value, str):
+        return value
+    if len(value) <= 4:
+        return "x" * len(value)
+    return value[:2] + "x" * (len(value) - 4) + value[-2:]
+
 # Partial redaction functions
 def redact_name(name):
     if not isinstance(name, str):
@@ -52,7 +61,7 @@ def detect_and_redact_pii(data_dict):
         redacted_val = val_str
         for pii_name, pattern in standalone_pii_patterns.items():
             if re.search(pattern, val_str):
-                redacted_val = "[REDACTED]"
+                redacted_val = mask_pii(val_str)   # changed here as the output demanded the masked value rather than redacted 
                 is_pii = True
 
         # Combinatorial PII partial redaction
@@ -63,7 +72,7 @@ def detect_and_redact_pii(data_dict):
             elif key.lower() == "email":
                 redacted_val = redact_email(val_str)
             else:
-                redacted_val = "[REDACTED]"
+                redacted_val = mask_pii(val_str)   # changed here
 
         redacted[key] = redacted_val
 
@@ -104,3 +113,4 @@ for val in output_df["redacted_data_json"]:
 
 if not flag_found:
     print("[!] No flag found in this file.")
+
